@@ -19,3 +19,9 @@ Ensure you have Python installed and do the following:
     - `python emotional_fingerprint.py`
 
 
+Notes: 
+- Fix error 403
+    - Consider the following:
+        - OAuth method, with an html address as a "hook"
+        - Make your own Spotify API keys
+        - Secret third option...

@@ -16,6 +16,7 @@ from spotipy.oauth2 import SpotifyClientCredentials
 
 load_dotenv()
 
+# hardcoded for now 
 SONGS = [
     ("I Wanna Be Yours", "Arctic Monkeys", "https://open.spotify.com/track/5XeFesFbtLpXzIVDNQP22n"),
     ("Nice To Know You", "PinkPantheress", "https://open.spotify.com/track/39BYU2nLFR8Q1RcPdVvUMn"),
@@ -29,6 +30,7 @@ SONGS = [
     ("Apocalypse", "Cigarettes After Sex", "https://open.spotify.com/track/1oAwsWBovWRIp7qLMGPIet"),
 ]
 
+# regex to convert spotify url to track id
 TRACK_ID_RE = re.compile(r"open\.spotify\.com/track/([A-Za-z0-9]{22})")
 
 # --------------------
@@ -87,7 +89,7 @@ def normalize_range(x: float, low: float, high: float) -> float:
         return 0.0
     return clamp((x - low) / (high - low))
 
-def bucket_3(x: float, labels: Tuple[str, str, str], t1: float = 0.33, t2: float = 0.66) -> str:
+def label_3(x: float, labels: Tuple[str, str, str], t1: float = 0.33, t2: float = 0.66) -> str:
     """Buckets a float x in the range [0, 1] into one of three labels based on thresholds t1 and t2."""
     if x < t1:
         return labels[0]
@@ -134,15 +136,15 @@ def compute_fingerprint(audio_features: Dict) -> Fingerprint:
 
     # energy: 45% energy + 35% tempo + 20% danceability
     energy_score = clamp((0.45 * energy) + (0.35 * tempo_n) + (0.20 * dance))
-    energy_label = bucket_3(energy_score, ("low energy", "medium energy", "high energy"))   
+    energy_label = label_3(energy_score, ("low energy", "medium energy", "high energy"))   
 
     # valence: 85% valence + 15% tempo
     valence_score = clamp((0.85 * valence) + (0.15 * tempo_n))
-    valence_label = bucket_3(valence_score, ("negative valence", "neutral valence", "positive valence"))
+    valence_label = label_3(valence_score, ("negative valence", "neutral valence", "positive valence"))
 
     # intensity: 45% energy + 35% loudness + 20% tempo
     intensity_score = clamp((0.45 * energy) + (0.35 * loudness_n) + (0.20 * tempo_n))
-    intensity_label = bucket_3(intensity_score, ("low intensity", "medium intensity", "high intensity"))
+    intensity_label = label_3(intensity_score, ("low intensity", "medium intensity", "high intensity"))
 
     # complexity: time signature + key + mode
     # primitive calculation:
@@ -157,14 +159,14 @@ def compute_fingerprint(audio_features: Dict) -> Fingerprint:
         complexity_raw += 0.1
 
     complexity_score = clamp(complexity_raw)
-    complexity_label = bucket_3(complexity_score, ("low complexity", "medium complexity", "high complexity"), t1=0.40, t2=0.70)
+    complexity_label = label_3(complexity_score, ("low complexity", "medium complexity", "high complexity"), t1=0.40, t2=0.70)
 
     # size: 55% acousticness + 25% instrumentalness + 20% valence
     # preliminary idea:
     # - more acoustic => intimate/smaller
     # - less acoustic + less instrumental (more produced / vocal) => overwhelming/larger
     size_score = clamp((0.55 * (1.0 - acousticness)) + (0.25 * (1.0 - instrumentalness)) + (0.20 * valence))
-    size_label = bucket_3(size_score, ("small size", "medium size", "large size"))
+    size_label = label_3(size_score, ("small size", "medium size", "large size"))
 
     return Fingerprint(
         energy=energy_label,
